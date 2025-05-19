@@ -2635,7 +2635,15 @@ func (dc *downstreamConn) handleMessageRegistered(ctx context.Context, msg *irc.
 
 		uc := dc.upstream()
 		if uc != nil {
-			uc.updateAway()
+			if !uc.network.AutoAway {
+				if dc.away != nil {
+					uc.setManualAway(true, *dc.away)
+				} else {
+					uc.setManualAway(false, "")
+				}
+			} else {
+				uc.updateAway()
+			}
 		}
 	case "INFO":
 		if dc.network == nil {
