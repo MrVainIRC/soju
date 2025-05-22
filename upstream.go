@@ -582,6 +582,25 @@ func (uc *upstreamConn) parseMembershipPrefix(s string) (ms xirc.MembershipSet, 
 	return memberships, s[i:]
 }
 
+func isSnomaskMessage(msg *irc.Message) bool {
+	if msg.Prefix != nil && msg.Prefix.User == "" && msg.Prefix.Host == "" {
+		return true
+	}
+
+	if len(msg.Params) > 0 && msg.Params[0] == "*" {
+		return true
+	}
+
+	switch msg.Command {
+	case "WALLOPS", "GLOBOPS", "LOCOPS", "NOTICE":
+		if len(msg.Params) > 0 && msg.Params[0] == "*" {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (uc *upstreamConn) handleMessage(ctx context.Context, msg *irc.Message) error {
 	var label string
 	if l, ok := msg.Tags["label"]; ok {
@@ -697,7 +716,7 @@ func (uc *upstreamConn) handleMessage(ctx context.Context, msg *irc.Message) err
 			}
 		}
 
-		if !self && !detached && isText && (highlight || directMessage) {
+		if !self && !detached && isText && (highlight || directMessage) && !isSnomaskMessage(msg) {
 			go uc.network.broadcastWebPush(msg)
 			if timestamp, err := time.Parse(xirc.ServerTimeLayout, string(msg.Tags["time"])); err == nil {
 				uc.network.pushTargets.Set(bufferName, timestamp)
