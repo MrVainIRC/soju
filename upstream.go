@@ -217,6 +217,7 @@ type upstreamConn struct {
 	caps        xirc.CapRegistry
 	batches     map[string]upstreamBatch
 	away        bool
+	manualMessage string
 	account     string
 	nextLabelID uint64
 	monitored   xirc.CaseMappingMap[bool]
@@ -2235,6 +2236,24 @@ func (uc *upstreamConn) updateAway() {
 		})
 	}
 	uc.away = away
+}
+
+func (uc *upstreamConn) setManualAway(isAway bool, reason string) {
+	ctx := context.TODO()
+
+	if isAway {
+		uc.SendMessage(ctx, &irc.Message{
+			Command: "AWAY",
+			Params:  []string{reason},
+		})
+	} else {
+		uc.SendMessage(ctx, &irc.Message{
+			Command: "AWAY",
+		})
+	}
+
+	uc.away = isAway
+	uc.manualMessage = reason
 }
 
 func (uc *upstreamConn) updateChannelAutoDetach(name string) {
